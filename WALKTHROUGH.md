@@ -1,73 +1,82 @@
-# Eye-X System Walkthrough 🚀
+# Eye-X System Walkthrough
 
-Welcome to **Eye-X**, the next-generation Smart Attendance & Behavioral Analytics system designed for modern educational institutions.
+This document serves as a comprehensive guide to operating and demonstrating the Eye-X Smart Attendance System.
 
-## 1. Core Features 🌟
+## 1. System Overview
 
-- **Zero-Touch Attendance:** Uses Face Recognition (YuNet) to mark attendance instantly.
-- **Behavioral Intelligence:** Tracks student attention (Focused, Distracted, Sleeping) using Head Pose Estimation.
-- **Edge-First Architecture:** Processes video on the device, saving 95% bandwidth and ensuring privacy.
-- **Real-Time Dashboard:** Low-latency (<200ms) WebRTC streaming for live classroom monitoring.
+Eye-X consists of three main components:
+1.  **Central Dashboard**: For monitoring and administration.
+2.  **Gate Camera Node**: For facial recognition and attendance marking.
+3.  **Classroom Camera Node**: For continuous behavioral analysis.
 
-## 2. User Journey 🗺️
+## 2. Operational Workflow
 
-### A. The Landing Page (`/`)
-The entry point to the system.
-- **Hero Section:** Features a stunning "Gradient Mesh" animation.
-- **Feature Grid:** Highlights the "Privacy First" and "Edge Computing" approach.
-- **Navigation:** Quick links to the Dashboard and Project Documentation.
+### Phase 1: Environment Configuration
+1.  Create a file named `.env` in the project root.
+2.  Add your MongoDB connection string:
+    ```env
+    MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
+    ```
+3.  The application will automatically load this securely.
 
-### B. The Live Dashboard (`/dashboard`)
-The command center for administrators.
-- **Smart Cards:** Shows Total Students, Present, and Absent counts in real-time.
-- **Camera Feeds:**
-    - **Gate Camera:** Monitors entry/exit for attendance.
-    - **Classroom Camera:** Takes periodic snapshots for behavior analysis.
-- **Visual Feedback:**
-    - **Pulse Animation:** Indicates when a camera is offline or waiting for a signal.
-    - **Live Bounding Boxes:** Draws green boxes for recognized faces and colored boxes for behavior states.
+### Phase 2: Server Startup
+Launch the backend server using the command line:
+```bash
+python app.py
+```
+You should see the initialization log indicating `Server running on port 8000`.
 
-### C. Engineering Deep-Dive (`/project`)
-A "Research-Grade" documentation page.
-- **Interactive Charts:** 8+ dynamic charts visualizing Network Latency, AI Accuracy, and Database Throughput.
-- **Architecture Diagrams:** Explains the WebRTC + DTLS handshake and Data Flow.
-- **Code Snippets:** Displays the actual Python logic for Vector Matching and Head Pose Math.
+### Phase 3: Dashboard Access
+Open a web browser on the host machine and navigate to:
+`http://localhost:8000/dashboard`
 
-### D. Mobile Clients (`/gate`, `/classroom`)
-The "Edge Nodes". Open these on any smartphone to turn it into an AI Camera.
-- **Gate Mode:** Optimized for continuous face scanning.
-- **Classroom Mode:** Optimized for high-res snapshots every 10 seconds.
+**Verification:**
+*   Check that the "Total Students" count is displayed.
+*   Verify that the "Live Camera Feeds" show the "Signal Lost" status (since cameras are not yet connected).
 
-## 3. Technology Stack 🛠️
+## 3. Demonstration Script
 
-- **Backend:** Python (FastAPI/Quart), WebSockets.
-- **Frontend:** HTML5, CSS3 (Glassmorphism), JavaScript (ES6+).
-- **AI Core:** OpenCV, YuNet (Face), ResNet (Features), PnP Solver (Pose).
-- **Database:** MongoDB (Time-Series Collections).
-- **Protocol:** WebRTC (Peer-to-Peer Video), DTLS-SRTP (Encryption).
+Follow this script to effectively demonstrate the system capabilities.
 
-## 4. Setup Guide 📦
+### Step A: Connect the Gate Camera
+1.  On a mobile device, connect to the same Wi-Fi network as the server.
+2.  Open the browser and navigate to `http://<SERVER_IP>:8000/gate`.
+3.  Grant camera permissions when prompted.
+4.  **Action:** Point the camera at a registered student's face.
+5.  **Observation:**
+    *   **Mobile Screen:** A green bounding box appears around the face.
+    *   **Dashboard:** The "Present" count increments immediately. A notification toast appears: "Student Marked Present".
 
-1. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Step B: Connect the Classroom Camera
+1.  On a second mobile device (or new tab), navigate to `http://<SERVER_IP>:8000/classroom`.
+2.  **Action:** Position the camera to view the "class" (a seated individual).
+3.  **Observation:**
+    *   **Dashboard:** The video feed appears in the "Classroom 101" panel.
 
-2. **Run the Server:**
-   ```bash
-   python app.py
-   ```
+### Step C: Demonstrate Behavioral Analytics
+Have the subject perform the following actions to test the AI state machine:
 
-3. **Access the System:**
-   - **Dashboard:** `http://localhost:8000/dashboard`
-   - **Gate Camera:** `http://localhost:8000/gate` (Open on Phone)
-   - **Classroom Camera:** `http://localhost:8000/classroom` (Open on Phone)
+1.  **Test "Attentive" State**:
+    *   *Action*: Look directly at the camera / screen for 5 seconds.
+    *   *Result*: The Dashboard status indicator shows "Attentive" (Green).
 
-## 5. Troubleshooting 🔧
+2.  **Test "Distracted" State**:
+    *   *Action*: Turn head to the left or right (> 35 degrees) for 5 seconds.
+    *   *Result*: The Dashboard status indicator changes to "Distracted" (Orange).
 
-- **"Signal Lost":** Ensure both devices are on the same Wi-Fi network (for WebRTC LAN access).
-- **"Camera Permission Denied":** Allow browser camera access on the mobile device.
-- **Low FPS:** The system automatically drops frames if CPU usage exceeds 90%.
+3.  **Test "Sleeping" State**:
+    *   *Action*: Lower head (`Pitch < 15`) or close eyes.
+    *   *Result*: The Dashboard status indicator changes to "Sleeping" (Red).
+
+## 4. Troubleshooting Guide
+
+### Issue: "Signal Lost" on Dashboard
+*   **Cause**: The WebRTC handshake failed or the mobile device is on a different network.
+*   **Resolution**: Ensure both devices are on the same Subnet (e.g., 192.168.1.x). Disable AP Isolation on the router.
+
+### Issue: Video Lag (> 1 second)
+*   **Cause**: Network congestion or low Wi-Fi signal.
+*   **Resolution**: move closer to the router. The system will automatically attempt to lower the bitrate.
 
 ---
-*Generated by Eye-X Engineering Team*
+**Eye-X Engineering Team**

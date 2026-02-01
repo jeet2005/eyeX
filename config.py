@@ -3,6 +3,9 @@ Configuration settings for Smart Attendance System
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Base paths
 BASE_DIR = Path(__file__).parent
@@ -23,7 +26,7 @@ PORT = 8000
 DATABASE_URL = f"sqlite+aiosqlite:///{DATA_DIR}/attendance.db"
 
 # MongoDB Atlas
-MONGODB_URI = "mongodb+srv://jeetsavaliya1908_db_user:9Q2EbGK4HoRLZee4@cluster0.mjae9id.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 MONGODB_DATABASE = "eye_x"
 
 # Face Detection (YuNet)
