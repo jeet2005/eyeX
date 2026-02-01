@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <style>
+        /* UI Enhancements */
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2.5rem !important;
+            margin-bottom: 3rem;
+        }
+
+        .camera-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .camera-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border-color: var(--accent-primary, #23D300);
+        }
+
+        .video-container {
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0f172a;
+            position: relative;
+            aspect-ratio: 16/9;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .no-feed {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            color: #94a3b8;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .pulse-ring {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .pulse-ring::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid var(--accent-primary, #23D300);
+            opacity: 0.5;
+            animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ping {
+
+            75%,
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-logo">
+            <img src="/static/images/logo.svg" alt="Eye-X">
+        </div>
+        <a href="/dashboard" class="nav-link active">
+            <span>Dashboard</span>
+        </a>
+        <a href="/add-students" class="nav-link">
+            <span>Add Students</span>
+        </a>
+        <a href="/analysis" class="nav-link">
+            <span>Analysis</span>
+        </a>
+        <a href="/data" class="nav-link">
+            <span>Data</span>
+        </a>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="page-content">
+        <div class="page-header">
+            <h1 class="page-title">Live Camera Feeds</h1>
+            <p style="color: var(--text-secondary); margin-top: var(--spacing-sm);">
+                Gate: <code>http://[your-ip]:8000/gate</code> &nbsp;|&nbsp;
+                Classroom: <code>http://[your-ip]:8000/classroom</code>
+            </p>
+        </div>
+
+        <div class="stats-grid"
+            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+            <!-- Stat Cards -->
+            <div class="stat-card"
+                style="background: var(--bg-secondary); padding: var(--spacing-lg); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-xs);">Total
+                    Enrolled</div>
+                <div class="stat-value" id="stat-enrolled" style="font-size: 2rem; font-weight: 700;">-</div>
+            </div>
+
+            <div class="stat-card"
+                style="background: var(--bg-secondary); padding: var(--spacing-lg); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-xs);">
+                    Present Today</div>
+                <div class="stat-value" id="stat-present"
+                    style="font-size: 2rem; font-weight: 700; color: var(--success);">0</div>
+            </div>
+
+            <div class="stat-card"
+                style="background: var(--bg-secondary); padding: var(--spacing-lg); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-xs);">Late
+                    Arrivals</div>
+                <div class="stat-value" id="stat-late"
+                    style="font-size: 2rem; font-weight: 700; color: var(--warning);">0</div>
+            </div>
+
+            <div class="stat-card"
+                style="background: var(--bg-secondary); padding: var(--spacing-lg); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle);">
+                <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: var(--spacing-xs);">Absent
+                </div>
+                <div class="stat-value" id="stat-absent"
+                    style="font-size: 2rem; font-weight: 700; color: var(--error);">0</div>
+            </div>
+        </div>
+
+        <div class="actions-bar" style="display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
+            <a href="/api/export/daily" target="_blank" class="btn"
+                style="background: var(--bg-tertiary); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                Export Today's Report
+            </a>
+            <a href="/api/export/monthly" target="_blank" class="btn"
+                style="background: var(--bg-tertiary); color: var(--text-primary); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                Export Monthly Report
+            </a>
+        </div>
+
+        <div class="camera-grid">
+            <!-- Gate Camera -->
+            <div class="camera-card">
+                <div class="camera-card-header">
+                    <div class="camera-card-title">
+                        <span class="status-dot offline" id="gate-status"></span>
+                        Gate Camera
+                    </div>
+                    <span id="gate-face-count"> 0 Faces</span>
+                </div>
+                <div class="video-container" id="gate-feed">
+                    <video id="gate-video" autoplay playsinline muted style="display: none;"></video>
+                    <img id="gate-snapshot" style="display: none;">
+                    <canvas id="gate-overlay"></canvas>
+                    <div class="no-feed" id="gate-placeholder">
+                        <div class="pulse-ring">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color:white;">
+                                <path d="M23 7l-7 5 7 5V7z" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="color: white; font-weight: 600; margin-bottom: 0.25rem;">Signal Lost</div>
+                            <div style="font-size: 0.85rem; opacity: 0.7;">Waiting for gate camera connection...</div>
+                            <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--accent-primary, #23D300);">
+                                Open /gate on mobile</div>
+                        </div>
+                    </div>
+                    <button id="gate-play-btn"
+                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 100; display: none; padding: 10px 20px; border-radius: 8px; border: none; background: var(--accent-primary); color: white; cursor: pointer;">
+                        ▶ Start Video
+                    </button>
+                </div>
+                <div class="camera-card-footer">
+                    <span>WebRTC Live Stream</span>
+                </div>
+            </div>
+
+            <!-- Classroom Camera -->
+            <div class="camera-card">
+                <div class="camera-card-header">
+                    <div class="camera-card-title">
+                        <span class="status-dot offline" id="classroom-status"></span>
+                        Classroom Camera
+                    </div>
+                    <span id="classroom-count">0 Students</span>
+                </div>
+                <div class="video-container" id="classroom-feed">
+                    <img id="classroom-snapshot" style="display: none;">
+                    <canvas id="classroom-overlay"></canvas>
+                    <div class="no-feed" id="classroom-placeholder">
+                        <div class="pulse-ring">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" style="color:white;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div style="color: white; font-weight: 600; margin-bottom: 0.25rem;">Standby Mode</div>
+                            <div style="font-size: 0.85rem; opacity: 0.7;">Waiting for snapshot interval...</div>
+                            <div style="font-size: 0.75rem; margin-top: 0.5rem; color: var(--accent-primary, #23D300);">
+                                Auto-updates every 10s</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="camera-card-footer">
+                    <span>High-Quality Snapshots</span>
+                    <span id="classroom-timestamp">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/webrtc-viewer.js?v=20260201-5"></script>
+    <script>
+        // Dashboard WebSocket & WebRTC Viewer
+        let ws = null;
+        let viewer = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            connectWebSocket();
+            initViewer();
+        });
+
+        function connectWebSocket() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${location.host}/ws/dashboard`);
+
+            ws.onopen = () => console.log('Dashboard WebSocket connected');
+            ws.onclose = () => {
+                console.log('WebSocket closed, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            ws.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                handleMessage(data);
+            };
+        }
+
+        function handleMessage(data) {
+            // console.log('Msg:', data.type);
+
+            switch (data.type) {
+                case 'camera_connected':
+                    updateStatus(data.room, true);
+                    break;
+                case 'camera_disconnected':
+                    updateStatus(data.room, false);
+                    break;
+                case 'face_result':
+                    drawFaceBoxes(data.faces || [], data.frame_width, data.frame_height);
+                    document.getElementById('gate-face-count').textContent =
+                        `   ${data.faces?.length || 0} Face${data.faces?.length !== 1 ? 's' : ''}`;
+                    break;
+                case 'classroom_snapshot':
+                    handleClassroomSnapshot(data);
+                    break;
+                case 'gate_snapshot':
+                    handleGateSnapshot(data);
+                    break;
+                case 'new_attendance':
+                    showToast(`${data.name} marked present!`, 'success');
+                    break;
+                case 'intrusion_alert':
+                    showToast('Unknown person detected!', 'error');
+                    document.getElementById('gate-feed').style.boxShadow = '0 0 20px red';
+                    setTimeout(() => document.getElementById('gate-feed').style.boxShadow = '', 2000);
+                    break;
+            }
+        }
+
+        function updateStatus(room, connected) {
+            const dot = document.getElementById(`${room}-status`);
+            if (dot) dot.className = `status-dot ${connected ? 'online' : 'offline'}`;
+        }
+
+        function handleClassroomSnapshot(data) {
+            const img = document.getElementById('classroom-snapshot');
+            const placeholder = document.getElementById('classroom-placeholder');
+            if (img && data.image) {
+                img.src = `data:image/jpeg;base64,${data.image}`;
+                img.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+            }
+            document.getElementById('classroom-count').textContent = `${data.student_count || 0} Students`;
+            document.getElementById('classroom-timestamp').textContent = new Date().toLocaleTimeString();
+            updateStatus('classroom', true);
+        }
+
+        function handleGateSnapshot(data) {
+
+            const img = document.getElementById('gate-snapshot');
+            const placeholder = document.getElementById('gate-placeholder');
+            const video = document.getElementById('gate-video');
+
+            // Check if WebRTC video is active and playing
+            const isWebRTCActive = video && video.srcObject && !video.paused && video.readyState >= 2;
+
+            if (isWebRTCActive) {
+                // WebRTC is live! Keep video visible.
+                video.style.display = 'block';
+                if (img) img.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'none';
+
+                // Still use the snapshot data for other things if needed, but don't disrupt video
+                // console.log("WebRTC active, ignoring snapshot display");
+            } else {
+                // WebRTC not ready, use Snapshot Fallback
+                if (img && data.image) {
+                    // Gate now uses pure WebRTC - snapshots disabled
+                    // If we ever need fallback, keep this logic but it won't trigger
+                    img.src = `data:image/jpeg;base64,${data.image}`;
+                    img.style.display = 'block';
+                    if (video) video.style.display = 'none';
+                    if (placeholder) placeholder.style.display = 'none';
+                }
+            }
+            updateStatus('gate', true);
+        }
+
+        function drawFaceBoxes(faces, frameW = 640, frameH = 480) {
+            const canvas = document.getElementById('gate-overlay');
+            const video = document.getElementById('gate-video');
+
+            if (!canvas) return;
+
+            // Get the video element's display dimensions
+            const displayRect = video.getBoundingClientRect();
+            if (displayRect.width === 0 || displayRect.height === 0) return;
+
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas to match display size
+            canvas.width = displayRect.width;
+            canvas.height = displayRect.height;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Scale from the PROCESSED frame dimensions (frameW, frameH) 
+            // to the DISPLAYED video dimensions
+            const scaleX = displayRect.width / frameW;
+            const scaleY = displayRect.height / frameH;
+
+            faces.forEach(face => {
+                const [fx, fy, fw, fh] = face.bbox;
+
+                const x = fx * scaleX;
+                const y = fy * scaleY;
+                const w = fw * scaleX;
+                const h = fh * scaleY;
+
+                const color = face.status === 'present' ? '#10b981' : '#ef4444';
+
+                // Draw box
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(x, y, w, h);
+
+                // Draw label
+                const label = face.name || 'Unknown';
+                ctx.font = 'bold 14px Inter, sans-serif';
+                const tw = ctx.measureText(label).width;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y - 24, tw + 12, 22);
+                ctx.fillStyle = 'white';
+                ctx.fillText(label, x + 6, y - 8);
+            });
+        }
+
+        function initViewer() {
+            viewer = new WebRTCViewer({
+                onStreamReceived: (room, stream) => {
+                    if (room === 'gate') {
+                        const video = document.getElementById('gate-video');
+                        const placeholder = document.getElementById('gate-placeholder');
+                        const playBtn = document.getElementById('gate-play-btn');
+
+                        if (video) {
+                            video.srcObject = stream;
+                            video.style.display = 'block';
+
+                            const startPlay = () => {
+                                video.play()
+                                    .then(() => {
+                                        playBtn.style.display = 'none';
+                                    })
+                                    .catch(e => {
+                                        console.error("Autoplay failed:", e);
+                                        playBtn.style.display = 'block';
+                                    });
+                            };
+
+                            startPlay();
+
+                            playBtn.onclick = startPlay;
+                        }
+                        if (placeholder) placeholder.style.display = 'none';
+                        updateStatus('gate', true);
+                    }
+                },
+                onConnectionStateChange: (state, room) => {
+                    if (state === 'camera_disconnected' && room === 'gate') {
+                        document.getElementById('gate-video').style.display = 'none';
+                        document.getElementById('gate-placeholder').style.display = 'flex';
+                        updateStatus('gate', false);
+                    }
+                }
+            });
+            viewer.start();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Fetch Stats
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats/today');
+                if (!response.ok) return;
+                const data = await response.json();
+
+                document.getElementById('stat-enrolled').textContent = data.enrolled;
+                document.getElementById('stat-present').textContent = data.present;
+                document.getElementById('stat-late').textContent = data.late;
+                document.getElementById('stat-absent').textContent = data.absent;
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+            }
+        }
+
+        // Refresh stats every 3 seconds
+        setInterval(fetchStats, 3000);
+        fetchStats(); // Initial fetch
+    </script>
+</body>
+
+</html>

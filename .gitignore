@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.vscode/
+instance/
+static/uploads/
+# Ignore heavy model files to satisfy GitHub 100MB limit
+models/models/
+*.zip
+*.onnx
+!models/face_detection_yunet_2023mar.onnx

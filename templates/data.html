@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data - Smart Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <style>
+        /* Attendance Trend Dots - Keep Specific Styles */
+        .attendance-trend {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .att-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .att-dot:hover {
+            transform: scale(1.3);
+        }
+
+        .att-dot.green {
+            background-color: #10b981;
+            box-shadow: 0 0 5px rgba(16, 185, 129, 0.4);
+        }
+
+        .att-dot.yellow {
+            background-color: #f59e0b;
+            box-shadow: 0 0 5px rgba(245, 158, 11, 0.4);
+        }
+
+        .att-dot.red {
+            background-color: #ef4444;
+            box-shadow: 0 0 5px rgba(239, 68, 68, 0.4);
+        }
+
+        .data-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+            margin-bottom: var(--spacing-xl);
+            overflow: hidden;
+        }
+
+        .data-card-header {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fafafa;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .empty-state {
+            padding: var(--spacing-xl);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-logo">
+            <img src="/static/images/logo.svg" alt="Eye-X">
+        </div>
+        <a href="/dashboard" class="nav-link"><span>Dashboard</span></a>
+        <a href="/add-students" class="nav-link"><span>Add Students</span></a>
+        <a href="/analysis" class="nav-link"><span>Analysis</span></a>
+        <a href="/data" class="nav-link active"><span>Data</span></a>
+    </nav>
+
+    <style>
+        /* Enhanced Table Styles for "Align this table" request */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+            /* Ensure left alignment */
+        }
+
+        th {
+            background: #fafafa;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: var(--spacing-md) var(--spacing-lg);
+            /* More padding */
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            /* Match header padding */
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Specific column alignment */
+        th:last-child,
+        td:last-child {
+            text-align: right;
+        }
+    </style>
+
+    <!-- Main Content -->
+    <div class="page-content">
+        <div class="page-header">
+            <h1 class="page-title">Student Data</h1>
+            <button class="btn btn-primary" onclick="exportExcel()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export Excel
+            </button>
+        </div>
+
+        <!-- Students Table -->
+        <div class="data-card">
+            <div class="data-card-header">
+                <h2 class="section-title">Enrolled Students</h2>
+                <span id="student-count">0 students</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Roll Number</th>
+                        <th>Last 5 Days</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody id="students-table">
+                    <tr>
+                        <td colspan="4" class="empty-state">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Today's Attendance -->
+        <div class="data-card">
+            <div class="data-card-header">
+                <h2 class="section-title">Today's Attendance</h2>
+                <span id="attendance-count">0 records</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Name</th>
+                        <th>Roll Number</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody id="attendance-table">
+                    <tr>
+                        <td colspan="5" class="empty-state">No attendance records today</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudents();
+            loadAttendance();
+        });
+
+        async function loadStudents() {
+            try {
+                const res = await fetch('/api/students/history');
+                const data = await res.json();
+                const tbody = document.getElementById('students-table');
+
+                if (Array.isArray(data) && data.length > 0) {
+                    tbody.innerHTML = data.map(s => {
+                        // Generate history dots
+                        const historyDots = s.history.map(day => `
+                            <div class="att-dot ${day.color}" title="${day.tooltip}"></div>
+                        `).join('');
+
+                        return `
+                        <tr>
+                            <td><strong>${s.name}</strong></td>
+                            <td>${s.roll_number}</td>
+                            <td>
+                                <div class="attendance-trend">
+                                    ${historyDots}
+                                </div>
+                            </td>
+                            <td>${s.registered_at ? new Date(s.registered_at).toLocaleDateString() : '-'}</td>
+                        </tr>
+                        `;
+                    }).join('');
+                    document.getElementById('student-count').textContent = `${data.length} students`;
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No students enrolled yet</td></tr>';
+                }
+            } catch (e) {
+                console.error('Error loading students:', e);
+            }
+        }
+
+        async function loadAttendance() {
+            try {
+                // Use the new daily stats endpoint which has detailed student data
+                const res = await fetch('/api/stats/today');
+                const data = await res.json();
+                const tbody = document.getElementById('attendance-table');
+
+                // Filter for present/late students for the attendance table
+                const activeRecords = data.students.filter(s => s.status !== 'absent');
+
+                if (activeRecords.length > 0) {
+                    tbody.innerHTML = activeRecords.map(r => `
+                        <tr>
+                            <td>${r.arrival_time}</td>
+                            <td><strong>${r.name}</strong></td>
+                            <td>${r.roll_number || '-'}</td>
+                            <td>
+                                <span class="badge ${r.status === 'late' ? 'badge-warning' : 'badge-success'}">
+                                    ${r.status === 'late' ? 'Late' : 'Present'}
+                                </span>
+                            </td>
+                            <td>-</td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('attendance-count').textContent = `${activeRecords.length} records`;
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No attendance records today</td></tr>';
+                }
+            } catch (e) {
+                console.error('Error loading attendance:', e);
+            }
+        }
+
+        async function exportExcel() {
+            window.location.href = '/api/export/daily';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+
+</html>

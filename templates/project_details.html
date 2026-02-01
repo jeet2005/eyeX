@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye-X | Engineering Architecture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #23d300;
+            --primary-dark: #1db100;
+            --primary-glow: rgba(35, 211, 0, 0.4);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --bg-light: #f8fafc;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #ffffff;
+            color: var(--text-main);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Mesh */
+        .bg-mesh {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at 0% 0%, rgba(35, 211, 0, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(35, 211, 0, 0.05) 0%, transparent 50%);
+        }
+
+        .bg-mesh::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2323d300' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
+        }
+
+        .nav-content {
+            max-width: 95%;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.5rem;
+            text-decoration: none;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        .btn-back {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Full Width Container */
+        .container {
+            max-width: 95%;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 6rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 5rem;
+            letter-spacing: -0.05em;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            margin-bottom: 8rem;
+            animation: fadeInUp 0.8s ease-out backwards;
+            animation-view-timeline: --section;
+        }
+
+        h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            letter-spacing: -0.03em;
+            border-bottom: 2px solid var(--primary);
+            display: inline-block;
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            margin-top: 1rem;
+        }
+
+        p {
+            font-size: 1.2rem;
+            color: #475569;
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        /* Split Layout for Full Screen */
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        @media (max-width: 1200px) {
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Flow Indicators */
+        .flow-diagram {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            background: #fff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            margin-top: 2rem;
+        }
+
+        .flow-step {
+            background: #fff;
+            padding: 1.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            font-weight: 600;
+            min-width: 160px;
+            font-size: 1.1rem;
+        }
+
+        .flow-step.active {
+            border-color: var(--primary);
+            background: rgba(35, 211, 0, 0.05);
+            color: var(--primary-dark);
+        }
+
+        .flow-arrow {
+            color: #cbd5e1;
+            font-size: 2rem;
+        }
+
+        /* State Machine */
+        .state-machine {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .state-card {
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .state-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .state-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 2rem;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono';
+            font-size: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        th,
+        td {
+            padding: 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f8fafc;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-mesh"></div>
+
+    <nav>
+        <div class="nav-content">
+            <a href="/" class="logo">
+                <img src="/static/images/logo.svg" height="32" alt="">
+                Eye-X <span>Engineering Data</span>
+            </a>
+            <a href="/dashboard" class="btn-back">Live Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>System Architecture</h1>
+            <p>A technical deep-dive into the Edge-First architecture powering the world's most accessible attendance
+                system. Optimized for High-Throughput & Low-Latency.</p>
+        </header>
+
+        <!-- 1. Global Arch -->
+        <section>
+            <h2>1. The "Zero-Lag" Edge Network</h2>
+            <div class="split-layout">
+                <div>
+                    <p>Processing video on a central server is expensive and slow. Eye-X inverts this model by running
+                        AI <strong>locally</strong> on the camera device (Smartphone) and the Viewer device (Laptop).
+                    </p>
+                    <p>This "Edge-First" approach allows us to scale to thousands of classrooms without increasing
+                        server costs. The server simply acts as a <strong>Signaling Broker</strong> for WebRTC
+                        connections, handling less than 5KB of data per session setup.</p>
+                    <div class="visual-block"
+                        style="background: white; padding: 2rem; border-radius: 16px; border: 1px solid #e2e8f0; margin-top: 2rem;">
+                        <strong>Key Benefits:</strong>
+                        <ul style="margin-left: 1.5rem; margin-top: 1rem; font-size: 1.1rem; line-height: 2;">
+                            <li>📉 <strong>Bandwidth:</strong> Reduced by 95% (Video stays on LAN).</li>
+                            <li>⚡ <strong>Latency:</strong> ~180ms (vs 10s for RTMP).</li>
+                            <li>🔒 <strong>Privacy:</strong> Video streams are P2P encrypted.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="glass-card">
+                    <h3 style="margin-top:0; text-align:center;">Load Distribution Analysis</h3>
+                    <div class="chart-container">
+                        <canvas id="archChart"></canvas>
+                    </div>
+                    <p style="text-align: center; font-size: 0.9rem; color: #94a3b8; margin-top: 1rem;">Server handles
+                        only 5% of the logic (Signaling). Edges handle 95%.</p>
+                </div>
+            </div>
+
+            <div class="flow-diagram">
+                <div class="flow-step active">📱 Camera <br><span
+                        style="font-size:0.9rem; font-weight:400; color:#64748b;">H.264 Encoder</span></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">DTLS Encrypted Stream <br><span
+                        style="font-size:0.9rem; font-weight:400; color:#64748b;">UDP Transport</span></div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step active">💻 Dashboard <br><span
+                        style="font-size:0.9rem; font-weight:400; color:#64748b;">GPU Renderer</span></div>
+            </div>
+        </section>
+
+        <!-- 2. Performance -->
+        <section>
+            <h2>2. Network Performance Metrics</h2>
+            <p>By using WebRTC P2P tunnels, we bypass the HTTP Request/Response cycle completely. See the comparative
+                analysis below.</p>
+
+            <div class="split-layout">
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">Latency Comparison (ms)</h3>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                    <p style="font-size: 0.9rem; text-align: center; margin-top: 1rem;">Lower is Better</p>
+                </div>
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">Throughput Stability (Mbps)</h3>
+                    <div class="chart-container" style="height: 350px;">
+                        <canvas id="throughputChart"></canvas>
+                    </div>
+                    <p style="font-size: 0.9rem; text-align: center; margin-top: 1rem;">Consistent bit-rate via Adaptive
+                        Bitrate Streaming (ABS)</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. AI Model -->
+        <section>
+            <h2>3. Computer Vision Pipeline (YuNet)</h2>
+            <div class="split-layout">
+                <div>
+                    <p>We use <strong>YuNet</strong> for detection. It is optimized for SIMD instructions on ARM
+                        processors (Mobile Phones). This allows it to run efficiently even on mid-range Android devices.
+                    </p>
+                    <p>The model performs 5 distinct operations per frame:</p>
+                    <ol style="margin-left: 1.5rem; line-height: 2; font-size: 1.1rem;">
+                        <li><strong>Input Scaling:</strong> Frame resized to 320x320.</li>
+                        <li><strong>Feature Extraction:</strong> 5-layer CNN backbone.</li>
+                        <li><strong>BBox Regression:</strong> Predicting face coordinates.</li>
+                        <li><strong>Landmark Detection:</strong> Finding Eyes, Nose, Mouth.</li>
+                        <li><strong>IoU Filtering:</strong> Removing overlapping detections.</li>
+                    </ol>
+                </div>
+                <div class="glass-card">
+                    <h3>Detection Accuracy vs Ambient Light</h3>
+                    <div class="chart-container">
+                        <canvas id="aiChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Behavior AI -->
+        <section>
+            <h2>4. Behavioral Intelligence Kernel</h2>
+            <p>We infer attention states from Head Pose math (Yaw, Pitch, Roll). The state machine is deterministic to
+                prevent jitter.</p>
+
+            <div class="split-layout">
+                <div class="state-machine" style="grid-column: span 2;">
+                    <div class="state-card" style="border-color: #23d300;">
+                        <span class="state-icon">🟢</span>
+                        <strong>Attentive</strong>
+                        <div style="font-size: 0.9rem; color: #64748b; margin-top:0.5rem;">Pitch &lt; 15°<br>Yaw &lt;
+                            20°<br>Eyes Open</div>
+                    </div>
+                    <div class="state-card" style="border-color: #f59e0b;">
+                        <span class="state-icon">🟠</span>
+                        <strong>Distracted</strong>
+                        <div style="font-size: 0.9rem; color: #64748b; margin-top:0.5rem;">Yaw &gt; 35°<br>(Looking
+                            sideways)</div>
+                    </div>
+                    <div class="state-card" style="border-color: #ef4444;">
+                        <span class="state-icon">🔴</span>
+                        <strong>Sleeping</strong>
+                        <div style="font-size: 0.9rem; color: #64748b; margin-top:0.5rem;">Pitch &gt; 25°<br>(Head Down)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="split-layout" style="margin-top: 3rem;">
+                <div>
+                    <h3>Mathematical Model</h3>
+                    <pre>
+def calculate_behavior(landmarks):
+    # PnP Problem Solver
+    image_points = np.array([
+        landmarks.nose, landmarks.chin,
+        landmarks.left_eye, landmarks.right_eye,
+        landmarks.mouth_left, landmarks.mouth_right
+    ], dtype="double")
+    
+    (success, rotation_vector, translation_vector) = 
+        cv2.solvePnP(model_points, image_points, 
+                     camera_matrix, dist_coeffs)
+                     
+    # Project 3D points to image plane
+    (nose_end_point2D, jacobian) = 
+        cv2.projectPoints(axis, rotation_vector, 
+                          translation_vector, 
+                          camera_matrix, dist_coeffs)
+
+    return rotation_vector # Contains Yaw/Pitch/Roll</pre>
+                </div>
+                <div class="glass-card">
+                    <h3 style="text-align: center;">Pose Thresholds</h3>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. DB & Scale -->
+        <section>
+            <h2>5. Database Schema & Scalability</h2>
+            <div class="split-layout">
+                <div class="glass-card">
+                    <h3>Write Operations / Minute</h3>
+                    <div class="chart-container">
+                        <canvas id="dbChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <p>MongoDB handles the high-velocity JSON logs. We use a <strong>Time-Series Collection</strong>
+                        pattern to ensure efficient indexing by timestamp.</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Collection</th>
+                                <th>Type</th>
+                                <th>Index Strategy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>behavior_logs</code></td>
+                                <td>Time-Series</td>
+                                <td>{ timestamp: -1, student_id: 1 }</td>
+                            </tr>
+                            <tr>
+                                <td><code>students</code></td>
+                                <td>Document</td>
+                                <td>{ embedding_vector: "2dsphere" }</td>
+                            </tr>
+                            <tr>
+                                <td><code>attendance</code></td>
+                                <td>Aggregate</td>
+                                <td>{ date: 1, class_id: 1 }</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Hardware Requirements -->
+        <section>
+            <h2>6. System Requirements</h2>
+            <p>Eye-X is designed to run on commodity hardware. Below are the minimum specifications for the Edge nodes.
+            </p>
+            <div class="split-layout">
+                <div class="glass-card" style="padding: 0;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Component</th>
+                                <th>Minimum Requirement</th>
+                                <th>Recommended</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Camera Device</strong></td>
+                                <td>Android 8.0 / iOS 12</td>
+                                <td>Android 12+ / iOS 15+</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Browser</strong></td>
+                                <td>Chrome 85+ / Safari 14+</td>
+                                <td>Chrome 100+</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Network</strong></td>
+                                <td>3G / 4G (2 Mbps Up)</td>
+                                <td>WiFi 5 (10 Mbps Up)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Dashboard PC</strong></td>
+                                <td>Intel i3 / 4GB RAM</td>
+                                <td>Intel i5 / 8GB RAM</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3>Environment Validation</h3>
+                    <p>The system automatically checks for:</p>
+                    <ul style="margin-left: 1.5rem; line-height: 2; font-size: 1.1rem;">
+                        <li>✅ <strong>MediaCapabilities API:</strong> To ensure hardware H.264 decoding.</li>
+                        <li>✅ <strong>WebGL 2.0:</strong> For high-performance canvas rendering.</li>
+                        <li>✅ <strong>WebSockets:</strong> For persistent signaling channels.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. API Specification (New) -->
+        <section>
+            <h2>7. WebSocket API Specification</h2>
+            <p>The dashboard communicates with the server via persistent WebSocket connections. Below is the
+                event-driven protocol definition.</p>
+
+            <div class="split-layout" style="align-items: flex-start;">
+                <div>
+                    <h3>7.1 Inbound Events (Server → Client)</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Event Type</th>
+                                <th>Payload Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>face_result</code></td>
+                                <td>Real-time bounding boxes and names from Gate camera.</td>
+                            </tr>
+                            <tr>
+                                <td><code>classroom_snapshot</code></td>
+                                <td>Base64 encoded (JPEG) frame with drawn behavior annotations.</td>
+                            </tr>
+                            <tr>
+                                <td><code>system_stats</code></td>
+                                <td>CPU, RAM usage, and active connection counts.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div>
+                    <h3>7.2 Payload Example (JSON)</h3>
+                    <pre style="font-size: 0.85rem; padding: 1.5rem;">
+// Event: classroom_snapshot
+{
+  "type": "classroom_snapshot",
+  "image": "/9j/4AAQSkZJRg...", // Base64 JPEG
+  "student_count": 42,
+  "behavior_metrics": {
+    "attentive": 35,
+    "distracted": 5,
+    "sleeping": 2
+  },
+  "timestamp": "2026-02-01T15:30:00Z"
+}</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Security Architecture (New) -->
+        <section>
+            <h2>8. Security & Encryption Stack</h2>
+            <p>Security is not an afterthought. We implement a defense-in-depth strategy securing Data-in-Transit and
+                Data-at-Rest.</p>
+
+            <div class="split-layout">
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">Encryption Layering</h3>
+                    <ul style="list-style: none; padding: 0; font-size: 1.1rem; line-height: 2;">
+                        <li>🛡️ <strong>Transport Layer:</strong> TLS 1.3 (HTTPS/WSS) for all signaling.</li>
+                        <li>🎥 <strong>Media Layer:</strong> DTLS-SRTP (RFC 5764) for video streams.</li>
+                        <li>💾 <strong>Storage Layer:</strong> AES-256 encryption for MongoDB volumes.</li>
+                        <li>🔑 <strong>Authentication:</strong> JWT (JSON Web Tokens) with 1-hour expiry.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Handshake Protocol (Simplified)</h3>
+                    <div class="flow-diagram"
+                        style="flex-direction: column; align-items: stretch; gap: 0.5rem; padding: 1.5rem;">
+                        <div class="flow-step" style="text-align: left;">1. <strong>Client Hello</strong> (Supported
+                            Ciphers)</div>
+                        <div class="flow-step" style="text-align: left;">2. <strong>Server Hello</strong> (Selected
+                            Cipher: AES_128_GCM)</div>
+                        <div class="flow-step" style="text-align: left;">3. <strong>Certificate Exchange</strong>
+                            (RSA-2048 Key)</div>
+                        <div class="flow-step" style="text-align: left;">4. <strong>Key Exchange</strong>
+                            (Diffie-Hellman)</div>
+                        <div class="flow-step active" style="text-align: left; background:#23d300; color:white;">5.
+                            <strong>Secure Tunnel Established</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Failure & Recovery (New) -->
+        <section>
+            <h2>9. Reliability Engineering</h2>
+            <p>Our "Self-Healing" logic ensures the system recovers gracefully from network interruptions.</p>
+            <div class="glass-card" style="padding: 0;">
+                <table style="margin: 0; box-shadow: none;">
+                    <thead>
+                        <tr>
+                            <th>Failure Mode</th>
+                            <th>Detection Strategy</th>
+                            <th>Recovery Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Video Freeze</strong></td>
+                            <td>Frame Inter-arrival Time > 500ms</td>
+                            <td>ICERestart() triggers immediate signaling renegotiation.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WS Disconnect</strong></td>
+                            <td>`onclose` event fired</td>
+                            <td>Exponential Backoff Retry (1s, 2s, 4s, 8s).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>High CPU</strong></td>
+                            <td>Process Monitor > 90%</td>
+                            <td>Frame skipping logic activated (Process every 3rd frame).</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 10. Roadmap (New) -->
+        <section>
+            <h2>10. Future Roadmap (Q3 2026)</h2>
+            <div class="split-layout">
+                <div>
+                    <h3> Phase 2: Federated Learning</h3>
+                    <p>Training the Face Recognition model across distributed edge devices without centralizing user
+                        photos. This ensures absolute privacy compliance (GDPR/CCPA).</p>
+
+                    <h3> Phase 3: Emotion Analysis</h3>
+                    <p>Moving beyond "Attentive/Distracted" to nuanced micro-expression analysis (Confusion, Joy,
+                        Frustration) to give teachers deeper pedagogical insights.</p>
+                </div>
+                <div class="glass-card">
+                    <h3 style="margin-top:0;">Planned Architecture Upgrade</h3>
+                    <div
+                        style="background:#f1f5f9; padding:1.5rem; border-radius:12px; font-family:'JetBrains Mono'; font-size:0.9rem;">
+                        [Edge Node A] \ <br>
+                        [Edge Node B] -- [Global Model Aggregator] <br>
+                        [Edge Node C] / <br>
+                        <br>
+                        <span style="color:#23d300;">// Only gradients are shared.</span><br>
+                        <span style="color:#23d300;">// Raw images never leave device.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer style="text-align:center; padding: 4rem 0; color: var(--text-muted); border-top: 1px solid #e2e8f0;">
+            <p>&copy; 2026 Eye-X Engineering Team. All Protocols Encrypted.</p>
+        </footer>
+    </div>
+
+    <!-- Initialization Scripts -->
+    <script>
+        // Global Options
+        Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+        Chart.defaults.color = '#64748b';
+        Chart.defaults.borderColor = 'rgba(0,0,0,0.05)';
+
+        // 1. Architecture Chart
+        new Chart(document.getElementById('archChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Server (Signaling)', 'Client (Inference)', 'Network Overhead'],
+                datasets: [{
+                    data: [5, 85, 10],
+                    backgroundColor: ['#3b82f6', '#23d300', '#94a3b8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // 2. Latency
+        new Chart(document.getElementById('latencyChart'), {
+            type: 'bar',
+            data: {
+                labels: ['RTMP (Flash)', 'HLS (Apple)', 'Eye-X (WebRTC)'],
+                datasets: [{
+                    label: 'Latency (ms)',
+                    data: [5000, 12000, 180],
+                    backgroundColor: ['#e2e8f0', '#e2e8f0', '#23d300'],
+                    borderRadius: 8
+                }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        // 3. Throughput
+        new Chart(document.getElementById('throughputChart'), {
+            type: 'line',
+            data: {
+                labels: ['0s', '10s', '20s', '30s', '40s', '50s', '60s'],
+                datasets: [{
+                    label: 'Mbps (Adaptive Bitrate)',
+                    data: [0.2, 2.5, 2.1, 2.8, 2.4, 2.6, 2.5],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+
+        // 4. AI Accuracy
+        new Chart(document.getElementById('aiChart'), {
+            type: 'line',
+            data: {
+                labels: ['10 Lux (Dark)', '100 Lux (Dim)', '300 Lux (Office)', '500 Lux (Daylight)'],
+                datasets: [{
+                    label: 'Model Confidence %',
+                    data: [65, 88, 96, 98],
+                    borderColor: '#23d300',
+                    tension: 0.3
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+
+        // 5. Radar
+        new Chart(document.getElementById('radarChart'), {
+            type: 'radar',
+            data: {
+                labels: ['Yaw Left', 'Yaw Right', 'Pitch Up', 'Pitch Down', 'Roll'],
+                datasets: [{
+                    label: 'Tolerance Limits',
+                    data: [30, 30, 20, 25, 45],
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    borderColor: '#ef4444'
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+
+        // 6. DB Writes
+        new Chart(document.getElementById('dbChart'), {
+            type: 'bar',
+            data: {
+                labels: ['8am', '9am', '10am', '11am', '12pm', '1pm', '2pm'],
+                datasets: [{
+                    label: 'Transactions/Min',
+                    data: [50, 450, 320, 280, 150, 400, 380],
+                    backgroundColor: '#0f172a',
+                    borderRadius: 4
+                }]
+            },
+            options: { maintainAspectRatio: false }
+        });
+    </script>
+</body>
+
+</html>

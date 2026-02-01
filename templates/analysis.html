@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis - Smart Attendance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/modern.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: var(--spacing-xl);
+        }
+
+        .chart-card {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-card);
+        }
+
+        .chart-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-logo">
+            <img src="/static/images/logo.svg" alt="Eye-X">
+        </div>
+        <a href="/dashboard" class="nav-link"><span>Dashboard</span></a>
+        <a href="/add-students" class="nav-link"><span>Add Students</span></a>
+        <a href="/analysis" class="nav-link active"><span>Analysis</span></a>
+        <a href="/data" class="nav-link"><span>Data</span></a>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="page-content">
+        <div class="page-header">
+            <h1 class="page-title">Analytics & Insights</h1>
+            <p style="color: var(--text-secondary); margin-top: var(--spacing-sm);">
+                Attendance trends and behavior analysis
+            </p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-today">--</div>
+                <div class="stat-label">Present Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-total">--</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-rate">--</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-focused">--</div>
+                <div class="stat-label">Focused Today</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <div class="chart-card">
+                <div class="chart-card-title"> Attendance Trend (7 Days)</div>
+                <div class="chart-container">
+                    <canvas id="attendance-chart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-card-title"> Behavior Distribution</div>
+                <div class="chart-container">
+                    <canvas id="behavior-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let attendanceChart = null;
+        let behaviorChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadData();
+        });
+
+        function initCharts() {
+            const chartDefaults = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#a1a1aa' } } },
+                scales: {
+                    x: { ticks: { color: '#a1a1aa' }, grid: { color: '#27272a' } },
+                    y: { ticks: { color: '#a1a1aa' }, grid: { color: '#27272a' } }
+                }
+            };
+
+            attendanceChart = new Chart(document.getElementById('attendance-chart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Present',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Absent',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: chartDefaults
+            });
+
+            behaviorChart = new Chart(document.getElementById('behavior-chart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Studying', 'Focused', 'Distracted', 'Sleeping'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa' } } }
+                }
+            });
+        }
+
+        async function loadData() {
+            // Load attendance trend
+            try {
+                const trendRes = await fetch('/api/analytics/attendance-trend?days=7');
+                const trend = await trendRes.json();
+                if (trend.data) {
+                    attendanceChart.data.labels = trend.data.map(d => d.date);
+                    attendanceChart.data.datasets[0].data = trend.data.map(d => d.present);
+                    attendanceChart.data.datasets[1].data = trend.data.map(d => d.absent);
+                    attendanceChart.update();
+                }
+            } catch (e) { console.error('Trend error:', e); }
+
+            // Load behavior summary
+            try {
+                const behRes = await fetch('/api/analytics/behavior-summary');
+                const beh = await behRes.json();
+                if (beh.data) {
+                    behaviorChart.data.datasets[0].data = [
+                        beh.data.studying || 0,
+                        beh.data.focused || 0,
+                        beh.data.distracted || 0,
+                        beh.data.sleeping || 0
+                    ];
+                    behaviorChart.update();
+                    document.getElementById('stat-focused').textContent =
+                        ((beh.data.studying || 0) + (beh.data.focused || 0)) + '%';
+                }
+            } catch (e) { console.error('Behavior error:', e); }
+
+            // Load stats
+            try {
+                const statsRes = await fetch('/api/stats/today');
+                const stats = await statsRes.json();
+                document.getElementById('stat-today').textContent = stats.present_today || 0;
+                document.getElementById('stat-total').textContent = stats.total_students || 0;
+                document.getElementById('stat-rate').textContent = (stats.attendance_rate || 0) + '%';
+            } catch (e) { console.error('Stats error:', e); }
+        }
+    </script>
+</body>
+
+</html>

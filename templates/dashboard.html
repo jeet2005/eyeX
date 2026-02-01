@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Attendance System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Chart.js for analytics graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-lg);
+            padding: var(--spacing-lg);
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-layout {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-lg);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            text-align: center;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: var(--spacing-xs);
+        }
+
+        .behavior-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .behavior-stat {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+        }
+
+        .behavior-stat .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+        }
+
+        .camera-feed {
+            position: relative;
+        }
+
+        .video-container {
+            aspect-ratio: 4/3;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .video-container video,
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .no-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+        }
+
+        .no-feed svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .camera-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+            font-size: 0.875rem;
+        }
+
+        .attendance-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .attendance-table th,
+        .attendance-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .attendance-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-lg);
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+
+        .add-student-form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        #captured-face-preview {
+            display: none;
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        #captured-face-preview img {
+            max-width: 150px;
+            border-radius: var(--radius-md);
+            border: 2px solid var(--success);
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: var(--spacing-lg);
+            right: var(--spacing-lg);
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+            margin-top: var(--spacing-sm);
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo"> EYE-X</div>
+        <nav style="display: flex; gap: var(--spacing-md);">
+            <a href="/" class="btn btn-primary" style="font-size: 0.875rem;">Dashboard</a>
+            <a href="/reports" class="btn btn-secondary" style="font-size: 0.875rem;">Reports</a>
+        </nav>
+        <div class="connection-status">
+            <span class="status-dot offline" id="ws-status"></span>
+            <span id="connection-text">Connecting...</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Stats Grid -->
+        <div class="stat-grid" style="padding: var(--spacing-lg); max-width: 1400px; margin: 0 auto;">
+            <div class="stat-card">
+                <div class="stat-value" id="total-students">0</div>
+                <div class="stat-label">Total Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="present-today">0</div>
+                <div class="stat-label">Present Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="absent-today">0</div>
+                <div class="stat-label">Absent Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="attendance-rate">0%</div>
+                <div class="stat-label">Attendance Rate</div>
+            </div>
+        </div>
+
+        <!-- Behavior Stats -->
+        <div id="behavior-stats" class="behavior-stats"
+            style="padding: 0 var(--spacing-lg); max-width: 1400px; margin: 0 auto;">
+            <div class="behavior-stat">
+                <div class="value" id="stat-studying">📖 0</div>
+                <div class="stat-label">Studying</div>
+            </div>
+            <div class="behavior-stat">
+                <div class="value" id="stat-focused"> 0</div>
+                <div class="stat-label">Focused</div>
+            </div>
+            <div class="behavior-stat">
+                <div class="value" id="stat-distracted">👀 0</div>
+                <div class="stat-label">Distracted</div>
+            </div>
+            <div class="behavior-stat">
+                <div class="value" id="stat-sleeping">😴 0</div>
+                <div class="stat-label">Sleeping</div>
+            </div>
+        </div>
+
+        <div class="dashboard-layout">
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Camera Feeds -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📹 Live Camera Feed</h2>
+                        <button class="btn btn-secondary" id="refresh-btn">🔄 Refresh</button>
+                    </div>
+                    <div class="video-grid">
+                        <div class="camera-feed">
+                            <div class="video-container" id="gate-feed" style="position: relative;">
+                                <video id="gate-video" autoplay playsinline muted
+                                    style="width: 100%; height: 100%; object-fit: cover; display: none;"></video>
+                                <canvas id="gate-overlay"
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                                <div class="no-feed" id="gate-placeholder">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                        <line x1="8" y1="21" x2="16" y2="21" />
+                                        <line x1="12" y1="17" x2="12" y2="21" />
+                                    </svg>
+                                    <span>Gate Camera</span>
+                                    <span style="font-size: 0.75rem;">Connect phone to start</span>
+                                </div>
+                            </div>
+                            <div class="camera-status">
+                                <span class="status-dot offline" id="gate-status"></span>
+                                <span>Gate</span>
+                                <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);"
+                                    id="gate-face-count"> 0 Faces</span>
+                            </div>
+                        </div>
+                        <div class="camera-feed">
+                            <div class="video-container" id="classroom-feed" style="position: relative;">
+                                <img id="classroom-snapshot"
+                                    style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                <div class="no-feed" id="classroom-placeholder">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                                        <line x1="8" y1="21" x2="16" y2="21" />
+                                        <line x1="12" y1="17" x2="12" y2="21" />
+                                    </svg>
+                                    <span>📷 Classroom Snapshot</span>
+                                    <span style="font-size: 0.75rem;">Updates every 10 seconds</span>
+                                </div>
+                                <canvas id="classroom-overlay"
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+                            </div>
+                            <div class="camera-status">
+                                <span class="status-dot offline" id="classroom-status"></span>
+                                <span>Classroom</span>
+                                <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-secondary);"
+                                    id="classroom-timestamp">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="margin-top: var(--spacing-md); color: var(--text-secondary); font-size: 0.875rem;">
+                        Gate: <code>http://[your-ip]:8000/gate</code> &nbsp;|&nbsp; Classroom:
+                        <code>http://[your-ip]:8000/classroom</code>
+                    </p>
+                </div>
+
+                <!-- Attendance Table -->
+                <div class="card" style="margin-top: var(--spacing-lg);">
+                    <div class="card-header">
+                        <h2 class="card-title">📋 Today's Attendance</h2>
+                    </div>
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Roll No.</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-list">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">
+                                    No attendance records yet
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Add Student with 3-Photo -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">➕ Add Student</h2>
+                    </div>
+                    <form id="add-student-form" class="add-student-form">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" name="name" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Roll Number</label>
+                            <input type="text" name="roll_number" placeholder="2024001" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email (optional)</label>
+                            <input type="email" name="email" placeholder="john@example.com">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Create & Enroll Face</button>
+                    </form>
+                    <p style="margin-top: var(--spacing-sm); font-size: 0.75rem; color: var(--text-secondary);">
+                        📸 After creating, you'll capture 3 photos from the gate camera for face enrollment.
+                    </p>
+                </div>
+
+                <!-- Charts -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"> Attendance Trend</h2>
+                    </div>
+                    <canvas id="attendance-chart" height="200"></canvas>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">🥧 Behavior Distribution</h2>
+                    </div>
+                    <canvas id="behavior-chart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 3-Photo Enrollment Modal -->
+    <div id="enrollment-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>📸 Face Enrollment</h2>
+                <button class="close-btn" onclick="closeEnrollmentModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div id="enrollment-student-info" style="margin-bottom: var(--spacing-md);">
+                    <strong id="enrollment-name"></strong> - <span id="enrollment-roll"></span>
+                </div>
+
+                <div id="enrollment-progress"
+                    style="display: flex; justify-content: center; gap: var(--spacing-md); margin-bottom: var(--spacing-lg);">
+                    <div class="step-indicator" id="step-1">1️⃣ Front</div>
+                    <div class="step-indicator" id="step-2">2️⃣ Left</div>
+                    <div class="step-indicator" id="step-3">3️⃣ Right</div>
+                </div>
+
+                <div id="enrollment-instruction"
+                    style="font-size: 1.25rem; margin-bottom: var(--spacing-md); color: var(--accent-primary);">
+                    📢 Look straight at the camera
+                </div>
+
+                <div id="enrollment-countdown" style="font-size: 3rem; font-weight: bold; display: none;">3</div>
+
+                <div id="enrollment-preview" style="margin-top: var(--spacing-md);">
+                    <div style="display: flex; gap: var(--spacing-sm); justify-content: center;">
+                        <img id="preview-1"
+                            style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-md); border: 2px solid var(--border-subtle); display: none;">
+                        <img id="preview-2"
+                            style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-md); border: 2px solid var(--border-subtle); display: none;">
+                        <img id="preview-3"
+                            style="width: 100px; height: 100px; object-fit: cover; border-radius: var(--radius-md); border: 2px solid var(--border-subtle); display: none;">
+                    </div>
+                </div>
+
+                <p id="enrollment-status" style="margin-top: var(--spacing-md); color: var(--text-secondary);">
+                    Waiting for gate camera connection...
+                </p>
+
+                <button id="start-capture-btn" class="btn btn-primary" style="margin-top: var(--spacing-lg);"
+                    onclick="startEnrollmentCapture()">
+                    🎬 Start Capture
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-lg);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .step-indicator {
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+        }
+
+        .step-indicator.active {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .step-indicator.done {
+            background: var(--success);
+            color: white;
+        }
+    </style>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/webrtc-client.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+    <script src="/static/js/webrtc-viewer.js"></script>
+
+    <script>
+        // Initialize WebRTC Viewer for live camera feeds
+        let webrtcViewer = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize WebRTC viewer
+            webrtcViewer = new WebRTCViewer({
+                onStreamReceived: (room, stream) => {
+                    console.log(`[Dashboard] Received stream for ${room}`);
+
+                    if (room === 'gate') {
+                        const video = document.getElementById('gate-video');
+                        const placeholder = document.getElementById('gate-placeholder');
+
+                        if (video) {
+                            video.srcObject = stream;
+                            video.style.display = 'block';
+                            video.play().catch(e => console.error('Video play error:', e));
+                        }
+                        if (placeholder) {
+                            placeholder.style.display = 'none';
+                        }
+
+                        // Update status
+                        const status = document.getElementById('gate-status');
+                        if (status) status.className = 'status-dot online';
+                    }
+                },
+                onConnectionStateChange: (state, room) => {
+                    console.log(`[Dashboard] Viewer state: ${state}, room: ${room || 'N/A'}`);
+
+                    if (state === 'camera_disconnected' && room === 'gate') {
+                        const video = document.getElementById('gate-video');
+                        const placeholder = document.getElementById('gate-placeholder');
+
+                        if (video) video.style.display = 'none';
+                        if (placeholder) placeholder.style.display = 'flex';
+
+                        const status = document.getElementById('gate-status');
+                        if (status) status.className = 'status-dot offline';
+                    }
+                }
+            });
+
+            webrtcViewer.start().catch(e => console.error('Viewer start error:', e));
+        });
+    </script>
+
+    <script>
+        // Enrollment state
+        let enrollmentStudentId = null;
+        let enrollmentStep = 0;
+        const enrollmentInstructions = [
+            "📢 Look straight at the camera",
+            "📢 Turn slightly to your LEFT",
+            "📢 Turn slightly to your RIGHT"
+        ];
+
+        // Initialize charts
+        let attendanceChart = null;
+        let behaviorChart = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            loadChartData();
+        });
+
+        function initCharts() {
+            // Attendance Trend Chart
+            const attCtx = document.getElementById('attendance-chart').getContext('2d');
+            attendanceChart = new Chart(attCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Present',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Absent',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Behavior Distribution Chart
+            const behCtx = document.getElementById('behavior-chart').getContext('2d');
+            behaviorChart = new Chart(behCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Studying', 'Focused', 'Distracted', 'Sleeping'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        async function loadChartData() {
+            try {
+                // Load attendance trend
+                const attRes = await fetch('/api/analytics/attendance-trend?days=7');
+                const attData = await attRes.json();
+                if (attData.success && attData.data.length > 0) {
+                    attendanceChart.data.labels = attData.data.map(d => d.date.slice(5));
+                    attendanceChart.data.datasets[0].data = attData.data.map(d => d.present);
+                    attendanceChart.data.datasets[1].data = attData.data.map(d => d.absent);
+                    attendanceChart.update();
+                }
+
+                // Load behavior summary
+                const behRes = await fetch('/api/analytics/behavior-summary');
+                const behData = await behRes.json();
+                if (behData.success) {
+                    behaviorChart.data.datasets[0].data = [
+                        behData.data.studying,
+                        behData.data.focused,
+                        behData.data.distracted,
+                        behData.data.sleeping
+                    ];
+                    behaviorChart.update();
+                }
+            } catch (e) {
+                console.error('Error loading chart data:', e);
+            }
+        }
+
+        // 3-Photo Enrollment Functions
+        function openEnrollmentModal(studentId, name, rollNumber) {
+            enrollmentStudentId = studentId;
+            enrollmentStep = 0;
+
+            document.getElementById('enrollment-name').textContent = name;
+            document.getElementById('enrollment-roll').textContent = rollNumber;
+            document.getElementById('enrollment-instruction').textContent = enrollmentInstructions[0];
+            document.getElementById('enrollment-status').textContent = 'Ready! Click "Start Capture" when the student is at the gate.';
+
+            // Reset previews
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`preview-${i}`).style.display = 'none';
+                document.getElementById(`step-${i}`).className = 'step-indicator';
+            }
+            document.getElementById('step-1').classList.add('active');
+
+            document.getElementById('enrollment-modal').style.display = 'flex';
+
+            // Speak instruction
+            speak(enrollmentInstructions[0].replace('📢 ', ''));
+        }
+
+        function closeEnrollmentModal() {
+            document.getElementById('enrollment-modal').style.display = 'none';
+            enrollmentStudentId = null;
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.0;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        async function startEnrollmentCapture() {
+            if (!enrollmentStudentId) return;
+
+            document.getElementById('start-capture-btn').disabled = true;
+
+            for (let step = 1; step <= 3; step++) {
+                enrollmentStep = step;
+
+                // Update UI
+                document.getElementById(`step-${step}`).classList.add('active');
+                document.getElementById('enrollment-instruction').textContent = enrollmentInstructions[step - 1];
+                speak(enrollmentInstructions[step - 1].replace('📢 ', ''));
+
+                // Countdown
+                for (let count = 3; count >= 1; count--) {
+                    document.getElementById('enrollment-countdown').textContent = count;
+                    document.getElementById('enrollment-countdown').style.display = 'block';
+                    await sleep(1000);
+                }
+                document.getElementById('enrollment-countdown').style.display = 'none';
+
+                // Capture from gate camera
+                document.getElementById('enrollment-status').textContent = `Capturing photo ${step}/3...`;
+
+                // Request capture via WebSocket
+                const captured = await captureEnrollmentPhoto(step);
+
+                if (captured) {
+                    document.getElementById(`step-${step}`).classList.remove('active');
+                    document.getElementById(`step-${step}`).classList.add('done');
+
+                    if (step < 3) {
+                        await sleep(1500);
+                    }
+                } else {
+                    document.getElementById('enrollment-status').textContent = 'Capture failed. Please try again.';
+                    document.getElementById('start-capture-btn').disabled = false;
+                    return;
+                }
+            }
+
+            // All done!
+            document.getElementById('enrollment-status').textContent = '✅ All 3 photos enrolled successfully!';
+            speak('Face enrollment complete!');
+
+            setTimeout(() => {
+                closeEnrollmentModal();
+                showToast('Face enrollment complete!', 'success');
+            }, 2000);
+        }
+
+        async function captureEnrollmentPhoto(step) {
+            // This will be called from dashboard.js via WebSocket
+            return new Promise((resolve) => {
+                if (window.dashboard && window.dashboard.ws) {
+                    window.dashboard.ws.send(JSON.stringify({
+                        type: 'enrollment_capture',
+                        student_id: enrollmentStudentId,
+                        step: step
+                    }));
+
+                    // Wait for response (handled in dashboard.js)
+                    window.enrollmentResolve = resolve;
+
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        if (window.enrollmentResolve) {
+                            window.enrollmentResolve(false);
+                            window.enrollmentResolve = null;
+                        }
+                    }, 5000);
+                } else {
+                    resolve(false);
+                }
+            });
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Override form submission to use MongoDB
+        document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+
+            try {
+                const response = await fetch('/api/mongodb/students', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Student created! Starting face enrollment...', 'success');
+                    e.target.reset();
+
+                    // Open enrollment modal
+                    openEnrollmentModal(
+                        result.student._id,
+                        result.student.name,
+                        result.student.roll_number
+                    );
+                } else {
+                    showToast(result.detail || 'Failed to create student', 'error');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        });
+
+        // Refresh charts periodically
+        setInterval(loadChartData, 30000);
+    </script>
+</body>
+
+</html>
